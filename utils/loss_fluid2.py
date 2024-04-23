@@ -19,11 +19,11 @@ class MODEL_FLUID(nn.Module):
 
         if LOSS_TYPE == 'PDE':
             return ns_pde(X,U, self.Re)
-        elif LOSS_TYPE == 'DIRICHLET':
+        elif LOSS_TYPE == 'Dirichlet':
             return Lf_dirichlet(U,label)
-        elif LOSS_TYPE == 'NEUTRAL':
+        elif LOSS_TYPE == 'Neutral':
             return Lf_neutral(X, U, normal, self.Re)
-        elif LOSS_TYPE == 'WINKSELL':
+        elif LOSS_TYPE == 'Winksell':
             print('WARNING: To be implemented!')
         else:
             print('WARNING: Please state the loss wanted!')
@@ -36,9 +36,7 @@ def differential_y_x(y,X,component):
 '''The losses for fluid problem'''
 def ns_pde(X, U, Re=1):
     u_vel, v_vel, p = U[:, 0:1], U[:, 1:2], U[:, 2:3]
-    x_cor, y_cor, t = X[:, 0:1], X[:, 1:2], X[:, 2:3]
 
-    u_vel_X = torch.autograd.grad(u_vel.sum(), X, create_graph=True)[0]
     u_vel_x = differential_y_x(u_vel,X,0)
     u_vel_y = differential_y_x(u_vel,X,1)
     u_vel_t = differential_y_x(u_vel,X,2)
@@ -65,8 +63,8 @@ def ns_pde(X, U, Re=1):
 
 def Lf_dirichlet(u, u_label):
     u_vel, v_vel, p = u[:, 0:1], u[:, 1:2], u[:, 2:3]
-    dirichlet_x = (torch.square(u_vel - u_label[:, 0:1]))
-    dirichlet_y = (torch.square(v_vel - u_label[:, 1:2]))
+    dirichlet_x = ((u_vel - u_label[:, 0:1]))
+    dirichlet_y = ((v_vel - u_label[:, 1:2]))
     return [dirichlet_x,dirichlet_y]
 
 def Lf_neutral(X, U, n, Re=1):
