@@ -1,12 +1,13 @@
 import numpy as np
 import torch
 from utils.networks import FNN
+from utils.domain2 import ELLIPSE
 from utils.loss_fluid2 import MODEL_FLUID
 from utils.sampler_rectangle2 import SAMPLER_RECTANGLE
 device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
-domain = [1,1]
-time = [0,1,2]
-visgrid=[6,3,2]
+domain = [2,1]
+time = [0,1/2,2]
+visgrid=[40,20,5]
 Re = 1
 Num = 1000
 lr_u = 1e-3
@@ -18,7 +19,8 @@ Opt_u = torch.optim.LBFGS(list(N_u.parameters()), lr=lr_u)
 Opt_p = torch.optim.LBFGS(list(N_p.parameters()), lr=lr_p)
 Model_fluid = MODEL_FLUID(N_u,N_p,Re)
 
-sampler = SAMPLER_RECTANGLE(domain, time, visgrid,device=device)
+ellipse = ELLIPSE(ellipse_center=[0.5,0], ellipse_size=[0.06,0.03], rotating_period = 1)
+sampler = SAMPLER_RECTANGLE(domain, time, visgrid,device=device, func_object=ellipse)
 Xdomain,NboundR,XboundL,XboundR,XboundU,XboundD,VboundL,Vbound0 = sampler(Num)
 
 Ldomain = Model_fluid(Xdomain,LOSS_TYPE = 'PDE')

@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5849985b-650f-47d7-97f6-dfb8cdbf1924" name="Changes" comment="20242204: UPDATE&#10;Basically complete the structures." />
+    <list default="true" id="5849985b-650f-47d7-97f6-dfb8cdbf1924" name="Changes" comment="20242204: UPDATE&#10;    Basically complete the structures.">
+      <change afterPath="$PROJECT_DIR$/utils/domain2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gNeuralNS.py" beforeDir="false" afterPath="$PROJECT_DIR$/gNeuralNS.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/sampler_rectangle2.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/sampler_rectangle2.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -102,7 +107,7 @@
       <workItem from="1712484147801" duration="4058000" />
       <workItem from="1713160376278" duration="1967000" />
       <workItem from="1713238852076" duration="5000" />
-      <workItem from="1713241826627" duration="45086000" />
+      <workItem from="1713241826627" duration="62914000" />
     </task>
     <task id="LOCAL-00001" summary="20242204: UPDATE&#10;Basically complete the structures.">
       <created>1713790469844</created>
@@ -118,7 +123,14 @@
       <option name="project" value="LOCAL" />
       <updated>1713790661469</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="20242204: UPDATE&#10;    Basically complete the structures.">
+      <created>1713790868993</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1713790868993</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -164,21 +176,22 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="20242204: UPDATE&#10;Basically complete the structures." />
-    <option name="LAST_COMMIT_MESSAGE" value="20242204: UPDATE&#10;Basically complete the structures." />
+    <MESSAGE value="20242204: UPDATE&#10;    Basically complete the structures." />
+    <option name="LAST_COMMIT_MESSAGE" value="20242204: UPDATE&#10;    Basically complete the structures." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/utils/sampler_rectangle2.py</url>
-          <line>114</line>
-          <option name="timeStamp" value="13" />
+          <line>137</line>
+          <option name="timeStamp" value="18" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/gNeuralNS$gNeuralNS.coverage" NAME="gNeuralNS Coverage Results" MODIFIED="1713774890114" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/gNeuralNS$gNeuralNS.coverage" NAME="gNeuralNS Coverage Results" MODIFIED="1713864088927" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/gNeuralNS$geometry_2d_curve.coverage" NAME="geometry_2d_curve Coverage Results" MODIFIED="1712484434147" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

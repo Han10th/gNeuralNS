@@ -22,7 +22,7 @@ def sample_rectangle_grid(grid,domain,time):
     return vis_domain,vis_time
 
 class SAMPLER_RECTANGLE(nn.Module):
-    def __init__(self, domain, time, visgrid=[20,10,5],device='cpu'):
+    def __init__(self, domain, time, visgrid=[20,10,5],device='cpu', func_object=None):
         super(SAMPLER_RECTANGLE, self).__init__()
         self.Nl, self.Nr, self.Nt = visgrid[0],visgrid[1],visgrid[2]
         self.device = device
@@ -32,6 +32,10 @@ class SAMPLER_RECTANGLE(nn.Module):
         vis_domain,vis_time = sample_rectangle_grid(visgrid, domain, time)
         self.vis_domain = self.data_warper(vis_domain)
         self.vis_time = self.data_warper(vis_time)
+
+        self.func_object = func_object
+        if func_object is not None:
+            self.vis_obj_bdr = self.func_object.generate_boundary(time[0:2],visgrid)
 
     def forward(self, N):
         # Generate points in fluid domain
@@ -106,7 +110,7 @@ class SAMPLER_RECTANGLE(nn.Module):
             self.fig = plt.figure(figsize=(8, 10), dpi=150)
         for i in range(self.Nt):
             if self.Nt < 20:
-                plt.subplot(int(self.Nt/2), 2, i + 1)
+                plt.subplot(self.Nt, 1, i + 1)
             else:
                 self.fig = plt.figure(figsize=(8, 10), dpi=150)
 
@@ -124,10 +128,14 @@ class SAMPLER_RECTANGLE(nn.Module):
                 U_current_np[i, ::N_vec, ::N_vec, 1], scale=5
             )
 
-            plt.plot(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], c='r')
-            plt.plot(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], c='r')
-            plt.scatter(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], s=1, c='b')
-            plt.scatter(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], s=1, c='b')
+            # # Plot for vessel boundary
+            # plt.plot(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], c='r')
+            # plt.plot(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], c='r')
+            # plt.scatter(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], s=1, c='b')
+            # plt.scatter(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], s=1, c='b')
+
+            if self.func_object is not None:
+                plt.plot(self.vis_obj_bdr[i, :, 0], self.vis_obj_bdr[i, :, 1], 'r')
 
             if self.Nt >= 20:
                 plt.axis('off')
