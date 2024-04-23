@@ -107,7 +107,7 @@ class SAMPLER_RECTANGLE(nn.Module):
         ColorMax, ColorMin = Color.max(), Color.min()
 
         if self.Nt < 20:
-            self.fig = plt.figure(figsize=(8, 10), dpi=150)
+            self.fig = plt.figure(figsize=(5, 10), dpi=150)
         for i in range(self.Nt):
             if self.Nt < 20:
                 plt.subplot(self.Nt, 1, i + 1)
