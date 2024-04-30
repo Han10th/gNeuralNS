@@ -12,7 +12,7 @@ def sample_rectangle_grid(grid,domain,time):
     y = np.tile(np.expand_dims(np.linspace(-h/2,h/2,Nr), axis=(1,2)),(1,Nl,1))
 
     vis_domain = np.concatenate((x,y), axis=-1)
-    vis_time = np.expand_dims(np.linspace(time[0], time[1], Nt), axis=1)
+    vis_time = np.expand_dims(np.linspace(time[1], time[2], Nt), axis=1)
 
     vis_domain = np.reshape(
         np.tile(vis_domain, (Nt, 1, 1, 1)), (Nt * Nl * Nr, 2)
@@ -30,13 +30,13 @@ def generate_parabolic_v(y,t,h):
     bdrL_0 = 0 * y
     return bdrL_u,bdrL_0
 
-class SAMPLER_RECTANGLE(nn.Module):
-    def __init__(self, domain, time, visgrid=[20,10,5],device='cpu', func_object=None):
+class SAMPLER_RECTANGLE:
+    def __init__(self, domain, time=[0,0,0.5,1], visgrid=[20,10,5],device='cpu', func_object=None):
         super(SAMPLER_RECTANGLE, self).__init__()
         self.Nl, self.Nr, self.Nt = visgrid[0],visgrid[1],visgrid[2]
         self.device = device
-        self.time = time        # [Start, VisEnd, End]
-        self.domain = domain    # [W, H]
+        self.time = np.array(time)        # [Start, VisStart, VisEnd, End]
+        self.domain = np.array(domain)    # [W, H]
 
         vis_domain,vis_time = sample_rectangle_grid(visgrid, domain, time)
         self.vis_domain = self.data_warper(vis_domain)
@@ -46,75 +46,72 @@ class SAMPLER_RECTANGLE(nn.Module):
         if func_object is not None:
             self.vis_obj_bdr = self.func_object.generate_boundary(visgrid)
 
-    def forward(self, N):
-        # Generate points in fluid domain
+    # def forward(self):
+    #     print("NOTHING")
+    def sample_domain(self,N):
         w,h = self.domain[0],self.domain[1]
-        T0,T2 = self.time[0],self.time[2]
+        T0,T3 = self.time[0],self.time[3]
 
-        domain_t = np.random.uniform(low=T0,    high=T2,    size=(5*N, 1))
+        domain_t = np.random.uniform(low=T0,    high=T3,    size=(5*N, 1))
         domain_x = np.random.uniform(low=0,     high=w,     size=(5*N, 1))
         domain_y = np.random.uniform(low=-h/2,  high=h/2,   size=(5*N, 1))
+        Xdomain = np.concatenate((domain_x,domain_y,domain_t),  axis=1)
+        if self.func_object is not None:
+            Xdomain = Xdomain[~self.func_object.inside_ellipse(Xdomain),:]
+        return self.data_warper(Xdomain)
+    def sample_inlet(self,N):
+        w,h = self.domain[0],self.domain[1]
+        T0,T3 = self.time[0],self.time[3]
 
-        boundary_t=np.random.uniform(low=T0,    high=T2,    size=(N, 1))
-
+        boundary_t=np.random.uniform(low=T0,    high=T3,    size=(N, 1))
         bdrL_x = np.random.uniform(low=0,     high=0,     size=(N, 1))
         bdrL_y = np.random.uniform(low=-h/2,  high=h/2,   size=(N, 1))
+        bdrL_u, bdrV_0 = generate_parabolic_v(bdrL_y, boundary_t, h)
+        XbdrIN = np.concatenate((bdrL_x,bdrL_y,boundary_t),axis=1)
+        UbdrIN = np.concatenate((bdrL_u,bdrV_0), axis=1)
+        NbdrIN = np.concatenate((-np.ones((N, 1)), np.zeros((N, 1))), axis=1)
+        return self.data_warper(XbdrIN), self.data_warper(UbdrIN), self.data_warper(NbdrIN)
+    def sample_wall(self,N):
+        w,h = self.domain[0],self.domain[1]
+        T0,T3 = self.time[0],self.time[3]
 
-        bdrR_x = np.random.uniform(low=w,     high=w,     size=(N, 1))
-        bdrR_y = np.random.uniform(low=-h/2,  high=h/2,   size=(N, 1))
-
+        boundary_t=np.random.uniform(low=T0,    high=T3,    size=(N, 1))
         bdrU_x = np.random.uniform(low=0,     high=w,     size=(N, 1))
         bdrU_y = np.random.uniform(low=h/2,   high=h/2,   size=(N, 1))
-
         bdrD_x = np.random.uniform(low=0,     high=w,     size=(N, 1))
         bdrD_y = np.random.uniform(low=-h/2,  high=-h/2,  size=(N, 1))
-
-        bdrL_u, bdrL_0 = generate_parabolic_v(bdrL_y, boundary_t, h)
-        Xdomain = np.concatenate((domain_x,domain_y,domain_t),  axis=1)
-        XbdrDiri1 = ((
-            np.concatenate((bdrL_x,bdrL_y,boundary_t),axis=1)
-        ))
-        UbdrDiri1 = ((
-            np.concatenate((bdrL_u,bdrL_0), axis=1)
-        ))
-        XbdrDiri0 = np.concatenate((
+        XbdrWALL = np.concatenate((
             np.concatenate((bdrU_x,bdrU_y,boundary_t),axis=1),
             np.concatenate((bdrD_x, bdrD_y, boundary_t), axis=1)
         ),axis=0)
-        UbdrDiri0 = np.concatenate((
-            np.concatenate((bdrL_0,bdrL_0), axis=1),
-            np.concatenate((bdrL_0,bdrL_0), axis=1)
+        UbdrWALL = np.concatenate((
+            np.concatenate((np.zeros((N, 1)),np.zeros((N, 1))), axis=1),
+            np.concatenate((np.zeros((N, 1)),np.zeros((N, 1))), axis=1)
         ),axis=0)
-        XbdrNeutral = ((
-            np.concatenate((bdrR_x,bdrR_y,boundary_t),axis=1)
-        ))
-        NbdrNeutral = ((
-            np.concatenate((np.ones((N, 1)), np.zeros((N, 1))), axis=1)
-        ))
+        NbdrWALL = np.concatenate((
+            np.concatenate((np.zeros((N, 1)), np.ones((N, 1))), axis=1),
+            np.concatenate((np.zeros((N, 1)),-np.ones((N, 1))), axis=1)
+        ),axis=0)
+        return self.data_warper(XbdrWALL), self.data_warper(UbdrWALL), self.data_warper(NbdrWALL)
+    def sample_outlet(self,N):
+        w,h = self.domain[0],self.domain[1]
+        T0,T3 = self.time[0],self.time[3]
 
-        if self.func_object is not None:
-            Xdisk = self.func_object.generate_domain(N)
-            # Xdisk = Xdomain[self.func_object.inside_ellipse(Xdomain),:]
-            Xdomain = Xdomain[~self.func_object.inside_ellipse(Xdomain),:]
-            XbdrDiri0 = np.concatenate((
-                XbdrDiri0,
-                Xdisk
-            ),axis=0)
-            UbdrDiri0 = np.concatenate((
-                UbdrDiri0,
-                Xdisk[:,0:2]*0
-            ),axis=0)
-
-        return self.data_warper(Xdomain),\
-               self.data_warper(XbdrDiri1), self.data_warper(UbdrDiri1),\
-               self.data_warper(XbdrDiri0), self.data_warper(UbdrDiri0),\
-               self.data_warper(XbdrNeutral), self.data_warper(NbdrNeutral),\
-
+        bdrR_x = np.random.uniform(low=w,     high=w,     size=(N, 1))
+        bdrR_y = np.random.uniform(low=-h/2,  high=h/2,   size=(N, 1))
+        boundary_t=np.random.uniform(low=T0,    high=T3,    size=(N, 1))
+        XbdrOUT = np.concatenate((bdrR_x,bdrR_y,boundary_t),axis=1)
+        UbdrOUT = np.concatenate((np.zeros((N, 1)),np.zeros((N, 1))), axis=1)
+        NbdrOUT = np.concatenate(( np.ones((N, 1)),np.zeros((N, 1))), axis=1)
+        return self.data_warper(XbdrOUT), self.data_warper(UbdrOUT), self.data_warper(NbdrOUT)
+    def sample_objects(self,N):
+        Xdisk = self.func_object.generate_domain(N)
+        return self.data_warper(Xdisk), self.data_warper(Xdisk[:, 0:2] * 0)
 
     def data_warper(self, data):
         return Variable(torch.from_numpy(data).float(), requires_grad=True).to(self.device)
 
-    def visualize(self,Nu=None,Np=None,Nd=None):
+    def visualize(self,Nu=None,Np=None,Ns=None):
         Nl,Nr,Nt = self.Nl, self.Nr, self.Nt
         N_step = 4
 
@@ -122,9 +119,15 @@ class SAMPLER_RECTANGLE(nn.Module):
             self.vis_domain,self.vis_time
         ),dim=1)
 
-        # D_current = Nd(self.X_reference)
-        # Xt = self.vis_domain + D_current
-        X_current = X_reference
+        if Ns is not None:
+            D_current = Ns(X_reference)
+            X_current = torch.concat((
+                X_reference[:,0:1],
+                X_reference[:,1:2]+D_current,
+                X_reference[:,-1:]
+            ),axis=1)
+        else:
+            X_current = X_reference
         U_current = Nu(X_current)
         P_current = Np(X_current)
 
@@ -141,7 +144,7 @@ class SAMPLER_RECTANGLE(nn.Module):
             if self.Nt < 20:
                 plt.subplot(self.Nt, 1, i + 1)
             else:
-                self.fig = plt.figure(figsize=(8, 10), dpi=150)
+                self.fig = plt.figure(figsize=(8, 4), dpi=150)
 
             plt.gca().axis('equal')
             plt.gca().pcolormesh(
@@ -153,8 +156,8 @@ class SAMPLER_RECTANGLE(nn.Module):
             plt.quiver(
                 X_current_np[i, ::N_step, ::N_step, 0],
                 X_current_np[i, ::N_step, ::N_step, 1],
-                U_current_np[i, ::N_step, ::N_step, 0],
-                U_current_np[i, ::N_step, ::N_step, 1], scale=Velocity
+                U_current_np[i, ::N_step, ::N_step, 0]/Velocity,
+                U_current_np[i, ::N_step, ::N_step, 1]/Velocity, scale=Velocity
             )
             plt.gca().set_xlim([-0.1*self.domain[0],1.1*self.domain[0]])
             plt.gca().set_ylim([-0.6*self.domain[1],0.6*self.domain[1]])
@@ -175,3 +178,6 @@ class SAMPLER_RECTANGLE(nn.Module):
             plt.show()
         #Draw pressure color - x
         #Draw velocity vector
+    def update_time(self, time_bound):
+        self.time[-1] = time_bound
+        print("[S2S] SAMPLER time limit updated to {:2.2f}".format(time_bound))
