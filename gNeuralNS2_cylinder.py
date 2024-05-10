@@ -15,7 +15,7 @@ check_folder(folder_ckp)
 visgrid = [40, 20, 5]
 # Region definition
 domain = [3.0, 1.0]
-time = [-0.2, 0, 1 / 2, 2 + 0.2]
+time = [-0.2, 0, 1, 1 + 0.2]
 # time = [0,0,2,2]
 # Seq2Seq parameter
 sequence_N = 50

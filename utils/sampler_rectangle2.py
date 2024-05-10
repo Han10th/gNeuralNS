@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from torch import nn
 from torch.autograd import Variable
 
-Velocity = 20
-def sample_rectangle_grid(grid,domain,time):
+Velocity = 10
+def generate_rectangle_grid(grid,domain,time):
     Nl, Nr, Nt = grid[0], grid[1], grid[2]
     w,h = domain[0], domain[1]
     x = np.tile(np.expand_dims(np.linspace(0,   w,  Nl), axis=(0,2)),(Nr,1,1))
@@ -31,33 +31,41 @@ def generate_parabolic_v(y,t,h):
     return bdrL_u,bdrL_0
 
 class SAMPLER_RECTANGLE:
-    def __init__(self, domain, time=[0,0,0.5,1], visgrid=[20,10,5],device='cpu', func_object=None):
+    def __init__(self, domain, time=[0,0,0.5,1], visgrid=[20,10,5],device='cpu', func_objects=[]):
         super(SAMPLER_RECTANGLE, self).__init__()
         self.Nl, self.Nr, self.Nt = visgrid[0],visgrid[1],visgrid[2]
         self.device = device
         self.time = np.array(time)        # [Start, VisStart, VisEnd, End]
         self.domain = np.array(domain)    # [W, H]
 
-        vis_domain,vis_time = sample_rectangle_grid(visgrid, domain, time)
+        vis_domain,vis_time = generate_rectangle_grid(visgrid, domain, time)
         self.vis_domain = self.data_warper(vis_domain)
         self.vis_time = self.data_warper(vis_time)
 
-        self.func_object = func_object
-        if func_object is not None:
-            self.vis_obj_bdr = self.func_object.generate_boundary(visgrid)
+        self.func_objects = func_objects
+        if self.func_objects:
+            self.vis_obj_bdr = []
+            self.vel_obj_bdr = []
+            for func_object in self.func_objects:
+                X_vis_obj,U_vis_obj = func_object.generate_boundary(visgrid)
+                self.vis_obj_bdr += [X_vis_obj]
+                self.vel_obj_bdr += [U_vis_obj]
 
     # def forward(self):
     #     print("NOTHING")
-    def sample_domain(self,N):
+    def sample_domain(self,N, t=None):
         w,h = self.domain[0],self.domain[1]
         T0,T3 = self.time[0],self.time[3]
 
-        domain_t = np.random.uniform(low=T0,    high=T3,    size=(5*N, 1))
+        domain_t = np.random.uniform(low=T0, high=T3, size=(5 * N, 1))
+        if t is not None:
+            domain_t = domain_t * 0 + t
         domain_x = np.random.uniform(low=0,     high=w,     size=(5*N, 1))
         domain_y = np.random.uniform(low=-h/2,  high=h/2,   size=(5*N, 1))
         Xdomain = np.concatenate((domain_x,domain_y,domain_t),  axis=1)
-        if self.func_object is not None:
-            Xdomain = Xdomain[~self.func_object.inside_ellipse(Xdomain),:]
+        if self.func_objects:
+            for func_object in self.func_objects:
+                Xdomain = Xdomain[~func_object.inside_ellipse(Xdomain),:]
         return self.data_warper(Xdomain)
     def sample_inlet(self,N):
         w,h = self.domain[0],self.domain[1]
@@ -104,16 +112,70 @@ class SAMPLER_RECTANGLE:
         UbdrOUT = np.concatenate((np.zeros((N, 1)),np.zeros((N, 1))), axis=1)
         NbdrOUT = np.concatenate(( np.ones((N, 1)),np.zeros((N, 1))), axis=1)
         return self.data_warper(XbdrOUT), self.data_warper(UbdrOUT), self.data_warper(NbdrOUT)
-    def sample_objects(self,N):
-        Xdisk = self.func_object.generate_domain(N)
-        return self.data_warper(Xdisk), self.data_warper(Xdisk[:, 0:2] * 0)
+    def sample_objects(self,N, t=None):
+        X_disk = np.zeros((0,3))
+        V_disk = np.zeros((0,2))
+        for func_object in self.func_objects:
+            X_domain = func_object.sample_domain(N, t)
+            V_domain = X_domain[:, 0:2] * 0
+            X_boundary,V_boundary = func_object.sample_boundary(N, t)
+            X_disk = np.concatenate((
+                X_disk,X_domain,X_boundary
+            ),axis=0)
+            V_disk = np.concatenate((
+                V_disk,V_domain,V_boundary
+            ),axis=0)
+        return self.data_warper(X_disk), self.data_warper(V_disk)
 
     def data_warper(self, data):
         return Variable(torch.from_numpy(data).float(), requires_grad=True).to(self.device)
+    def visualize_sampled_domain(self, domain):
+        T1,T2 = self.time[1],self.time[2]
+        N = 1000
+        Nt = 5
+        N_step = 10
+        tstep=(T2-T1)/(Nt-1)
+        plt.figure(figsize=(5, 10), dpi=150)
+        for i in range(Nt):
+            time = tstep*i
+            plt.subplot(5, 1, i+1)
+            plt.gca().axis('equal')
+            plt.gca().set_xlim([-0.1*domain[0],1.1*domain[0]])
+            plt.gca().set_ylim([-0.6*domain[1],0.6*domain[1]])
+            dom = self.sample_domain(N, time)
+            dom = dom.cpu().detach().numpy()
+            plt.scatter(dom[:, 0], dom[:, 1], s=1, c='b')
+            for (vis_obj_bdr,vel_obj_bdr) in zip(self.vis_obj_bdr,self.vel_obj_bdr):
+                plt.plot(vis_obj_bdr[i, :, 0], vis_obj_bdr[i, :, 1], 'r')
+                plt.quiver(
+                    vis_obj_bdr[i, ::N_step, 0],
+                    vis_obj_bdr[i, ::N_step, 1],
+                    vel_obj_bdr[i, ::N_step, 0],
+                    vel_obj_bdr[i, ::N_step, 1], scale=Velocity
+                )
 
+
+            if self.func_objects:
+                obj,vel = self.sample_objects(N, time)
+                obj = obj.cpu().detach().numpy()
+                vel = vel.cpu().detach().numpy()
+                plt.scatter(obj[:, 0], obj[:, 1], s=1, c='r')
+                plt.quiver(
+                    obj[::N_step, 0],
+                    obj[::N_step, 1],
+                    vel[::N_step, 0],
+                    vel[::N_step, 1], scale=Velocity
+                )
+        plt.show()
     def visualize(self,Nu=None,Np=None,Ns=None):
         Nl,Nr,Nt = self.Nl, self.Nr, self.Nt
         N_step = 4
+        N_stream = 10
+        Hy = self.domain[1]/2 * 0.8
+        stream_points = np.concatenate((
+            np.zeros((N_stream,1)),
+            np.expand_dims(np.linspace(Hy,-Hy,N_stream),axis=1)
+        ),axis=1)
 
         X_reference = torch.concat((
             self.vis_domain,self.vis_time
@@ -153,12 +215,20 @@ class SAMPLER_RECTANGLE:
                 Color[i, :, :],
                 vmin=ColorMin, vmax=ColorMax
             )
-            plt.quiver(
+            # plt.quiver(
+            #     X_current_np[i, ::N_step, ::N_step, 0],
+            #     X_current_np[i, ::N_step, ::N_step, 1],
+            #     U_current_np[i, ::N_step, ::N_step, 0]/Velocity,
+            #     U_current_np[i, ::N_step, ::N_step, 1]/Velocity, scale=Velocity
+            # )
+            plt.streamplot(
                 X_current_np[i, ::N_step, ::N_step, 0],
                 X_current_np[i, ::N_step, ::N_step, 1],
-                U_current_np[i, ::N_step, ::N_step, 0]/Velocity,
-                U_current_np[i, ::N_step, ::N_step, 1]/Velocity, scale=Velocity
-            )
+                U_current_np[i, ::N_step, ::N_step, 0],
+                U_current_np[i, ::N_step, ::N_step, 1],
+                # start_points=stream_points, density=[0.5, 1])
+                density=0.6, color='k', linewidth=Color[i, ::N_step, ::N_step]/Velocity)
+
             plt.gca().set_xlim([-0.1*self.domain[0],1.1*self.domain[0]])
             plt.gca().set_ylim([-0.6*self.domain[1],0.6*self.domain[1]])
             # # Plot for vessel boundary
@@ -167,8 +237,18 @@ class SAMPLER_RECTANGLE:
             # plt.scatter(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], s=1, c='b')
             # plt.scatter(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], s=1, c='b')
 
-            if self.func_object is not None:
-                plt.plot(self.vis_obj_bdr[i, :, 0], self.vis_obj_bdr[i, :, 1], 'r')
+            if self.func_objects:
+                for vis_obj_bdr in self.vis_obj_bdr:
+                    Xobj_current = self.data_warper(vis_obj_bdr[i, :, :])
+                    Uobj_current = Nu(Xobj_current)
+                    Uobj_current = Uobj_current.detach().cpu().numpy()
+                    plt.plot(vis_obj_bdr[i, :, 0], vis_obj_bdr[i, :, 1], 'r')
+                    # plt.quiver(
+                    #     vis_obj_bdr[i, ::N_step, 0],
+                    #     vis_obj_bdr[i, ::N_step, 1],
+                    #     Uobj_current[::N_step, 0]/Velocity,
+                    #     Uobj_current[::N_step, 1]/Velocity, scale=Velocity
+                    # )
 
             if self.Nt >= 20:
                 plt.axis('off')
