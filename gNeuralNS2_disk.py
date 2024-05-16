@@ -5,8 +5,8 @@ from utils.networks import FNN,SFNN
 from utils.domain2 import ELLIPSE
 from utils.loss_fsi2 import MODEL_FSI
 from utils.sampler_rectangle2 import SAMPLER_RECTANGLE
-# device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
-device = torch.device('cpu')
+device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cpu')
 
 # File io
 folder_ckp = 'node/disk_problem/'
@@ -15,7 +15,7 @@ check_folder(folder_ckp)
 # visgrid=[120,60,100]
 visgrid=[40,20,5]
 # Region definition
-domain = [3.0,1.0]
+domain = [6.0,3.0]
 time = [-0.2,0,1,1+0.2]
 # time = [0,0,2,2]
 # Seq2Seq parameter
@@ -23,18 +23,18 @@ sequence_N = 50
 time_step = (time[-1]+ time[0]) / sequence_N
 time_bound = time[0] + time_step
 # Object definition 0
-ellipse0_center_ref=[1.0,0.0]
-ellipse0_size=[0.1,0.05]
+ellipse0_center_ref=[2.0,0.0]
+ellipse0_size=[0.3,0.2]
 ellipse0_period = [1,1]
-ellipse0_range=[0.0,0.25]
+ellipse0_range=[0.0,0.5]
 # Object definition 1
-ellipse1_center_ref=[2.0,0.2]
-ellipse1_size=[0.1,0.05]
+ellipse1_center_ref=[4.0,0.7]
+ellipse1_size=[0.3,0.2]
 ellipse1_period = [1,1]
 ellipse1_range=[0.0,0]
 # Object definition 2
-ellipse2_center_ref=[2.0,-0.2]
-ellipse2_size=[0.1,0.05]
+ellipse2_center_ref=[4.0,-0.7]
+ellipse2_size=[0.3,0.2]
 ellipse2_period = [1,1]
 ellipse2_range=[0.0,0]
 # Fluid Parameter
@@ -54,7 +54,7 @@ N_u = FNN([3] + 10 * [40] + [2], "tanh", "Glorot normal").to(device)
 # N_u = SFNN([3] + 10 * [20] + [1], 2, "tanh", "Glorot normal").to(device)
 N_p = FNN([3] + 10 * [20] + [1], "tanh", "Glorot normal").to(device)
 # load_cpt(folder_ckp+'{:d}'.format(30000),N_u,N_p)
-load_cpt(folder_ckp+'3best',N_u,N_p)
+# load_cpt(folder_ckp+'3Bbest',N_u,N_p)
 Opt_u = torch.optim.Adam(list(N_u.parameters()), lr=lr_u)
 Opt_p = torch.optim.Adam(list(N_p.parameters()), lr=lr_p)
 model_fsi = MODEL_FSI(N_u,N_p,None,Re)
@@ -101,13 +101,13 @@ for epoch_i in range(epoch_N):
         print("EPOCH : {:5d} \t Total: {:5.8f} \t PDE: {:5.8f} \t DIV: {:5.8f} \t Inlet: {:5.8f} \t BdrDiri: {:5.8f} \t Obj: {:5.8f} \t Outlet: {:5.8f}".format(
             epoch_i,Loss_total, Losses[0], Losses[1], Losses[2], Losses[3], Losses[4], Losses[5]))
 
-        if Loss_total<3 and a_ns<1e-3:
+        if Loss_total<2 and a_ns<1e-3:
             this_N = 0
             a_ns = a_ns*10
             alphas[0] = a_ns
             print("Alpha updated : %2.2e"%a_ns)
 
-        if Loss_total<3 and a_ns>=1e-3 and time_bound<time[-1]:
+        if Loss_total<2 and a_ns>=1e-3 and time_bound<time[-1]:
             this_N = 0
             time_bound = time_bound + time_step
             sampler.update_time(time_bound)

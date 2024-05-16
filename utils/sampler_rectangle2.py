@@ -120,10 +120,10 @@ class SAMPLER_RECTANGLE:
             V_domain = X_domain[:, 0:2] * 0
             X_boundary,V_boundary = func_object.sample_boundary(N, t)
             X_disk = np.concatenate((
-                X_disk,X_domain,X_boundary
+                X_disk,X_boundary#,X_domain
             ),axis=0)
             V_disk = np.concatenate((
-                V_disk,V_domain,V_boundary
+                V_disk,V_boundary#,V_domain
             ),axis=0)
         return self.data_warper(X_disk), self.data_warper(V_disk)
 
@@ -201,13 +201,13 @@ class SAMPLER_RECTANGLE:
         ColorMax, ColorMin = Color.max(), Color.min()
 
         if self.Nt < 20:
-            self.fig = plt.figure(figsize=(5, 10), dpi=150)
+            self.fig = plt.figure(figsize=(4, 10), dpi=150)
         for i in range(self.Nt):
             if self.Nt < 20:
                 plt.subplot(self.Nt, 1, i + 1)
             else:
                 self.fig = plt.figure(figsize=(8, 4), dpi=150)
-
+            plt.tight_layout()
             plt.gca().axis('equal')
             plt.gca().pcolormesh(
                 X_current_np[i, :, :, 0],
@@ -229,8 +229,6 @@ class SAMPLER_RECTANGLE:
                 # start_points=stream_points, density=[0.5, 1])
                 density=0.6, color='k', linewidth=Color[i, ::N_step, ::N_step]/Velocity)
 
-            plt.gca().set_xlim([-0.1*self.domain[0],1.1*self.domain[0]])
-            plt.gca().set_ylim([-0.6*self.domain[1],0.6*self.domain[1]])
             # # Plot for vessel boundary
             # plt.plot(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], c='r')
             # plt.plot(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], c='r')
@@ -250,6 +248,8 @@ class SAMPLER_RECTANGLE:
                     #     Uobj_current[::N_step, 1]/Velocity, scale=Velocity
                     # )
 
+            plt.gca().set_xlim([-0.1,0.1+self.domain[0]])
+            plt.gca().set_ylim([-0.6*self.domain[1],0.6*self.domain[1]])
             if self.Nt >= 20:
                 plt.axis('off')
                 self.fig.savefig('frame/f_{}_{}.png'.format(0, i))

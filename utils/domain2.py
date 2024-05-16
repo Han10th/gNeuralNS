@@ -157,6 +157,9 @@ class ELLIPSE:
         X_x,X_y = rotate_via_numpy(X_a, X_b, boundary_psi)
 
         X_rho, X_theta = car2pol(X_y, X_x)
-        V_x = - np.sin(X_theta) * X_rho
-        V_y =   np.cos(X_theta) * X_rho
+        V_a =-self.size[0] * 2*np.pi/self.period[0] * np.sin(boundary_theta-boundary_psi)
+        V_b = self.size[1] * 2*np.pi/self.period[0] * np.cos(boundary_theta-boundary_psi)
+        V_x,V_y = rotate_via_numpy(V_a, V_b, boundary_psi)
+        # V_x = - np.sin(X_theta) * X_rho
+        # V_y =   np.cos(X_theta) * X_rho
         return X_x,X_y,V_x,V_y
