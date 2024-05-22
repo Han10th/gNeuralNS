@@ -5,8 +5,8 @@ from utils.networks import FNN
 from utils.loss_fsi2 import MODEL_FSI
 from utils.sampler_rectangle2 import SAMPLER_RECTANGLE
 
-device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
-
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print(device)
 # File io
 folder_ckp = 'node/cylinder_problem/'
 check_folder(folder_ckp)

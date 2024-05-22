@@ -1,8 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from torch import nn
-from torch.autograd import Variable
+from utils.utils import ToTensor
 
 Velocity = 10
 def generate_rectangle_grid(grid,domain,time):
@@ -128,7 +127,7 @@ class SAMPLER_RECTANGLE:
         return self.data_warper(X_disk), self.data_warper(V_disk)
 
     def data_warper(self, data):
-        return Variable(torch.from_numpy(data).float(), requires_grad=True).to(self.device)
+        return ToTensor(data,self.device)
     def visualize_sampled_domain(self, domain):
         T1,T2 = self.time[1],self.time[2]
         N = 1000

@@ -34,7 +34,7 @@ class MODEL_FSI:
             return Lf_dirichlet(U,label)
         elif LOSS_TYPE == 'Neutral':
             return Lf_neutral(Y, U, normal, self.Re)
-        elif LOSS_TYPE == 'Winksell':
+        elif LOSS_TYPE == 'Windkssel':
             print('WARNING: To be implemented!')
         elif LOSS_TYPE == 'StressContinuity':
             return Li_stress(Y,U,X,D,normal,self.cof_a,self.cof_H)

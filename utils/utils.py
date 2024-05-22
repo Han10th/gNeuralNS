@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import torch
 
 def differential_y_x(y,X,component):
@@ -21,3 +22,7 @@ def load_cpt(file_suffix,N_u,N_p,N_s=None):
     if N_s is not None:
         N_s.load_state_dict(torch.load(file_suffix + 'NsEp'))
     print(file_suffix + 'checkpoints : LOAD COMPLETED!')
+def ToTensor(data,device):
+    return torch.autograd.Variable(torch.from_numpy(data).float(), requires_grad=True).to(device)
+def is_leaf(Connect,j):
+    return np.sum(Connect[:,j])==0
