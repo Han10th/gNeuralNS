@@ -2,8 +2,13 @@ import random
 import torch
 from torch import nn
 
+def multiple_FNN(N,layer_sizes, activation='tanh', initialize = 'zero',device='cpu'):
+    listofFNN = []
+    for i in range(N):
+        listofFNN += [FNN(layer_sizes, activation, initialize).to(device)]
+    return listofFNN
 class FNN(nn.Module):
-    def __init__(self, layer_sizes, activation='tanh', initialize = 'zero', device='cpu'):
+    def __init__(self, layer_sizes, activation='tanh', initialize = 'zero'):
         super(FNN, self).__init__()
         layer_depth = len(layer_sizes) - 1
         if isinstance(activation, list):

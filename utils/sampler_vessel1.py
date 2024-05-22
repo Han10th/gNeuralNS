@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils.utils import ToTensor
 
-Velocity = 10
+velocity_max = 10
 def extract_segmentIDX(Connect,j):
     if j==0:
         startID4point = 0
@@ -91,6 +91,8 @@ class SAMPLER_VESSEL:
         self.N_segment = Connect.shape[0]
         self.vis_points,self.vis_radius,self.vis_time,self.vis_z_Pseg \
             = generate_vessel_grid(visgrid,Connect,Points,Radius,self.Length,Time)
+    def sample_time(self,N):
+        return np.random.uniform(low=self.Time[0], high=self.Time[3], size=(N, 1))
     def sample_domain(self,N, t=None):
         vesseltree_domain = []
         vesseltree_r = []
@@ -101,7 +103,10 @@ class SAMPLER_VESSEL:
             length = self.Length[j]
             this_z = np.random.uniform(low=0, high=length, size=(N, 1))
             this_r = (length-this_z)/length*R0 + this_z/length*R1
-            this_t = np.random.uniform(low=self.Time[0], high=self.Time[3], size=(N, 1))
+            if t is None:
+                this_t = np.random.uniform(low=self.Time[0], high=self.Time[3], size=(N, 1))
+            else:
+                this_t = t
             this_r_z = np.tile(self.Radius_z[j],(N,1))
 
             vesseltree_domain += [self.data_warper(np.concatenate((this_z,this_t),  axis=1))]
@@ -112,7 +117,10 @@ class SAMPLER_VESSEL:
         vesseltree_inlet = []
         for j in range(self.N_segment):
             this_z = np.random.uniform(low=0, high=0, size=(N, 1))
-            this_t = np.random.uniform(low=self.Time[0], high=self.Time[3], size=(N, 1))
+            if t is None:
+                this_t = np.random.uniform(low=self.Time[0], high=self.Time[3], size=(N, 1))
+            else:
+                this_t = t
             vesseltree_inlet += [self.data_warper(np.concatenate((this_z, this_t), axis=1))]
             if j==0:
                 inlet_velocity = self.data_warper(self.sample_inletV(this_t))
@@ -122,28 +130,31 @@ class SAMPLER_VESSEL:
         for j in range(self.N_segment):
             length = self.Length[j]
             this_z = np.random.uniform(low=length, high=length, size=(N, 1))
-            this_t = np.random.uniform(low=self.Time[0], high=self.Time[3], size=(N, 1))
+            if t is None:
+                this_t = np.random.uniform(low=self.Time[0], high=self.Time[3], size=(N, 1))
+            else:
+                this_t = t
             vesseltree_outlet += [self.data_warper(np.concatenate((this_z, this_t), axis=1))]
         return vesseltree_outlet
     def sample_inletV(self,t):
         v = (1 - np.cos(2*np.pi*t)) / 2
-        return 10 * v
+        return velocity_max * v
     def data_warper(self, data):
         return ToTensor(data,self.device)
     def getConnect(self):
         return self.Connect
-    def visualize(self,N_Q=None,N_P=None,N_R=None):
+    def visualize(self,N_Q_list,N_P_list,N_R_list):
         VIDEOFLAG = (self.Nt > 20)
         self.fig = plt.figure(figsize=(4, 10), dpi=150) if ~VIDEOFLAG else None
 
         for k in range(self.Nt):
             for j in range(self.N_segment):
                 X = self.data_warper(np.concatenate((
-                    self.vis_time[j][k,:,:],self.vis_z_Pseg[j][k,:,:]
+                    self.vis_z_Pseg[j][k,:,:],self.vis_time[j][k,:,:]
                 ),axis=1))
-                Q = N_Q(X)
-                P = N_P(X)
-                R = N_R(X)
+                Q = N_Q_list[j](X)
+                P = N_P_list[j](X)
+                R = N_R_list[j](X)
 
                 points = self.vis_points[j][k,:,:]
                 flux = Q.detach().cpu().numpy()
@@ -152,7 +163,7 @@ class SAMPLER_VESSEL:
                 boundary0 = compute_bdrpoint(points,radius)
                 boundary1 = compute_bdrpoint(points,-radius)
                 this_color = np.concatenate((flux,flux,flux),axis=1)
-                ColorMax, ColorMin = 20,0
+                ColorMax, ColorMin = velocity_max,0
 
                 this_grid = np.concatenate((
                     np.expand_dims(boundary0,axis=1),
@@ -176,7 +187,7 @@ class SAMPLER_VESSEL:
 
                 if VIDEOFLAG:
                     plt.axis('off')
-                    self.fig.savefig('frame/f_{}_{}.png'.format(0, i))
+                    self.fig.savefig('frame/f_{}_{}.png'.format(0, k))
                     plt.close(self.fig)
         if ~VIDEOFLAG:
             plt.show()

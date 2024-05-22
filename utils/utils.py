@@ -22,6 +22,11 @@ def load_cpt(file_suffix,N_u,N_p,N_s=None):
     if N_s is not None:
         N_s.load_state_dict(torch.load(file_suffix + 'NsEp'))
     print(file_suffix + 'checkpoints : LOAD COMPLETED!')
+def ExtractParameters(N_list):
+    Parameters=list()
+    for N in N_list:
+        Parameters += list(N.parameters())
+    return Parameters
 def ToTensor(data,device):
     return torch.autograd.Variable(torch.from_numpy(data).float(), requires_grad=True).to(device)
 def is_leaf(Connect,j):
