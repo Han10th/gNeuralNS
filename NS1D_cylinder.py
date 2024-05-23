@@ -38,7 +38,7 @@ vessel_radius = np.array([
 N_segment = len(vessel_radius)
 time = np.array([0,0,1,1])
 # Solid Parameter
-E = 1e5
+E = 1e6
 h0 = 0.1
 beta = E*h0*np.sqrt(np.pi)
 # Fluid Parameter
@@ -88,7 +88,7 @@ for epoch_i in range(epoch_N):
     Loss_total.backward()
     Opt_Q.step()
     Opt_P.step()
-    Opt_R.step()
+    # Opt_R.step()
 
     if epoch_i % 100 == 0:
         print(
