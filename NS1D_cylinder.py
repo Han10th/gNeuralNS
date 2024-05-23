@@ -27,12 +27,12 @@ vessel_connect = np.array([
 vessel_pts = np.array([
     [0,0,0],
     [20,0,0],
-    [40,20,0],
-    [40,0,0]
+    [40,10,0],
+    [40,-10,0]
 ])
 vessel_radius = np.array([
     [2,1],
-    [1,2],
+    [1,1],
     [1,1]
 ])
 N_segment = len(vessel_radius)
