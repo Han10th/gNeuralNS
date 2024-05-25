@@ -22,11 +22,32 @@ def load_cpt(file_suffix,N_u,N_p,N_s=None):
     if N_s is not None:
         N_s.load_state_dict(torch.load(file_suffix + 'NsEp'))
     print(file_suffix + 'checkpoints : LOAD COMPLETED!')
+def load_cpt1d(file_suffix,N_Q_list, N_P_list):
+    N_Q_list = (torch.load(file_suffix + 'NQlistEp'))
+    N_P_list = (torch.load(file_suffix + 'NPlistEp'))
+    print(file_suffix + 'checkpoints : LOAD COMPLETED!')
+    return N_Q_list,N_P_list
+def save_cpt1d(file_suffix,N_Q_list, N_P_list):
+    torch.save(N_Q_list, file_suffix + 'NQlistEp')
+    torch.save(N_P_list, file_suffix + 'NPlistEp')
+    print(file_suffix + 'checkpoints : SAVE COMPLETED!')
+
 def ExtractParameters(N_list):
     Parameters=list()
     for N in N_list:
         Parameters += list(N.parameters())
     return Parameters
+def MakeOptimizers(N_list,lr):
+    Opt_list = []
+    for N in N_list:
+        Opt_list += [torch.optim.Adam(list(N.parameters()), lr=lr)]
+    return Opt_list
+def ClearGradients(Opt_list):
+    for Opt in Opt_list:
+        Opt.zero_grad()
+def StepGradients(Opt_list):
+    for Opt in Opt_list:
+        Opt.step()
 def ToTensor(data,device):
     return torch.autograd.Variable(torch.from_numpy(data).float(), requires_grad=True).to(device)
 def is_leaf(Connect,j):
