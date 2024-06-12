@@ -13,7 +13,7 @@ def generate_rectangle_grid(grid,domain,time):
     vis_domain = np.concatenate((x,y), axis=-1)
     vis_time = np.expand_dims(np.linspace(time[1], time[2], Nt), axis=1)
 
-    return pair_domainVStime(vis_domain,vis_time)
+    return pair_domainVStime(vis_domain,vis_time,Nl, Nr, Nt)
 
 def generate_parabolic_v(y,t,h):
     parabolic_profile = 1 - (y / (h / 2)) ** 2

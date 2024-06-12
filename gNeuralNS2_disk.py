@@ -5,7 +5,7 @@ from utils.networks import FNN,SFNN
 from utils.domain2 import ELLIPSE
 from utils.loss_fsi2 import MODEL_FSI
 from utils.sampler_rectangle2 import SAMPLER_RECTANGLE
-device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # device = torch.device('cpu')
 
 # File io
@@ -54,7 +54,7 @@ N_u = FNN([3] + 10 * [40] + [2], "tanh", "Glorot normal").to(device)
 # N_u = SFNN([3] + 10 * [20] + [1], 2, "tanh", "Glorot normal").to(device)
 N_p = FNN([3] + 10 * [20] + [1], "tanh", "Glorot normal").to(device)
 # load_cpt(folder_ckp+'{:d}'.format(30000),N_u,N_p)
-load_cpt(folder_ckp+'3Bbest',N_u,N_p)
+# load_cpt(folder_ckp+'3Bbest',N_u,N_p)
 Opt_u = torch.optim.Adam(list(N_u.parameters()), lr=lr_u)
 Opt_p = torch.optim.Adam(list(N_p.parameters()), lr=lr_p)
 model_fsi = MODEL_FSI(N_u,N_p,None,Re)
