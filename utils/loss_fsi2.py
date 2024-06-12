@@ -12,6 +12,7 @@ class MODEL_FSI:
         self.cof_a = cof_a
         self.cof_H = cof_H
 
+
     def losscompute(self, X,
                    label=None,
                    normal=None,
@@ -23,7 +24,7 @@ class MODEL_FSI:
             ), axis=1)
         else:
             D = self.N_s(X)
-            Y = torch.concat((X[:,0:1],X[:,1:2]+D,X[:,-1:]),axis=1)
+            Y = torch.concat((X[:,0:1]+D[:,0:1],X[:,1:2]+D[:,1:2],X[:,-1:]),axis=1)
             U = torch.concat((
                 self.N_u(Y), self.N_p(Y)
             ), axis=1)

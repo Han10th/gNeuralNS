@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.utils import ToTensor
+from utils.utils import ToTensor,pair_domainVStime
 
 Velocity = 10
 def generate_rectangle_grid(grid,domain,time):
@@ -13,13 +13,7 @@ def generate_rectangle_grid(grid,domain,time):
     vis_domain = np.concatenate((x,y), axis=-1)
     vis_time = np.expand_dims(np.linspace(time[1], time[2], Nt), axis=1)
 
-    vis_domain = np.reshape(
-        np.tile(vis_domain, (Nt, 1, 1, 1)), (Nt * Nl * Nr, 2)
-    )
-    vis_time = np.reshape(
-        np.tile(vis_time, (1, Nl * Nr)), (Nt * Nl * Nr, 1)
-    )
-    return vis_domain,vis_time
+    return pair_domainVStime(vis_domain,vis_time)
 
 def generate_parabolic_v(y,t,h):
     parabolic_profile = 1 - (y / (h / 2)) ** 2

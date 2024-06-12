@@ -52,3 +52,12 @@ def ToTensor(data,device):
     return torch.autograd.Variable(torch.from_numpy(data).float(), requires_grad=True).to(device)
 def is_leaf(Connect,j):
     return np.sum(Connect[:,j])==0
+
+def pair_domainVStime(domain, time, Nl,Nr,Nt):
+    domain = np.reshape(
+        np.tile(domain, (Nt, 1, 1, 1)), (Nt * Nl * Nr, 2)
+    )
+    time = np.reshape(
+        np.tile(time, (1, Nl * Nr)), (Nt * Nl * Nr, 1)
+    )
+    return domain, time
