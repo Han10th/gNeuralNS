@@ -4,13 +4,13 @@ from utils.utils import check_folder,save_cpt,load_cpt
 from utils.networks import FNN,SFNN
 from utils.loss_fsi2 import MODEL_FSI
 from utils.sampler_vessel2 import SAMPLER2D_VESSEL
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
 
 # File io
 folder_ckp = 'node/ns2d_vessel/'
 check_folder(folder_ckp)
 # Visualization Parameter
-visgrid = [500,51,4]
+visgrid = [120,51,4]
 # Region definition
 vessel_connect = np.array([
 ])
@@ -23,7 +23,7 @@ vessel_radius = np.array([
 vessel_smoother = np.array([
     0,1,0#1,1,1,1,0
 ])*2
-time = np.array([0,0,1,1])
+time = np.array([0,0.0,0.1,0.2])
 # time = [0,0,2,2]
 # Seq2Seq parameter
 sequence_N = 50
@@ -49,8 +49,9 @@ sample_N = 1000
 lr_u = 1e-4
 lr_p = 1e-3
 lr_s = 1e-3
-a_ns = 1e-4
-alphas = [a_ns, 10, 1, 10, 1]
+a_ns = 1e-5
+a_ns_thred = 1e-4
+alphas = [a_ns, 1, 0, 2, 2, 0.1]
 # Alpha_ns dynamic weighting
 N_loss = len(alphas)
 this_N = 0
@@ -58,7 +59,7 @@ this_N = 0
 N_u = FNN([3] + 10 * [40] + [2], "tanh", "Glorot normal").to(device)
 N_p = FNN([3] + 10 * [20] + [1], "tanh", "Glorot normal").to(device)
 N_s = FNN([3] + 10 * [20] + [2], "tanh", "zero").to(device)
-load_cpt(folder_ckp+'{:d}'.format(1),N_u,N_p)
+# load_cpt(folder_ckp+'{:d}'.format(98),N_u,N_p)
 Opt_u = torch.optim.Adam(list(N_u.parameters()), lr=lr_u)
 Opt_p = torch.optim.Adam(list(N_p.parameters()), lr=lr_p)
 Opt_s = torch.optim.Adam(list(N_s.parameters()), lr=lr_s)
@@ -71,11 +72,13 @@ sampler = SAMPLER2D_VESSEL(vessel_pts, vessel_radius, vessel_smoother,time, visg
 for epoch_i in range(epoch_N):
     this_N = this_N + 1
     Xdomain = sampler.sample_domain(sample_N)
+    Xinit,      Uinit               = sampler.sample_initial(sample_N)
     XbdrIN,     UbdrIN,     NbdrIN  = sampler.sample_inlet(sample_N)
     XbdrWALL,   UbdrWALL,   NbdrWALL= sampler.sample_wall(sample_N)
     XbdrOUT,    UbdrOUT,    NbdrOUT = sampler.sample_outlet(sample_N)
 
     Ldomain = model_fsi.losscompute(Xdomain,LOSS_TYPE = 'PDE')
+    Linit = model_fsi.losscompute(Xinit,label = Uinit,LOSS_TYPE = 'Dirichlet')
     LbdrIN = model_fsi.losscompute(XbdrIN,label = UbdrIN,LOSS_TYPE = 'Dirichlet')
     ### NEED TO BE COMPLETED ###
     LbdrWALL = model_fsi.losscompute(XbdrWALL,label = UbdrWALL,LOSS_TYPE = 'Dirichlet')
@@ -83,7 +86,7 @@ for epoch_i in range(epoch_N):
 
     Opt_u.zero_grad()
     Opt_p.zero_grad()
-    loss_list = [Ldomain[0:2], Ldomain[2:3], LbdrIN, LbdrWALL, LbdrOUT]
+    loss_list = [Ldomain[0:2], Ldomain[2:3], Linit, LbdrIN, LbdrWALL, LbdrOUT]
     Losses = []
     Loss_total = 0
     for i in range(N_loss):
@@ -98,16 +101,16 @@ for epoch_i in range(epoch_N):
 
     if epoch_i % 100 == 0:
         print(
-            "EPOCH : {:5d} \t Total: {:5.8f} \t PDE: {:5.8f} \t DIV: {:5.8f} \t Inlet: {:5.8f} \t BdrDiri: {:5.8f} \t Outlet: {:5.8f}".format(
-                epoch_i, Loss_total, Losses[0], Losses[1], Losses[2], Losses[3], Losses[4]))
+            "EPOCH : {:5d} \t Total: {:5.8f} \t PDE: {:5.8f} \t DIV: {:5.8f} \t Init: {:5.8f} \t Inlet: {:5.8f} \t BdrDiri: {:5.8f} \t Outlet: {:5.8f}".format(
+                epoch_i, Loss_total, Losses[0], Losses[1], Losses[2], Losses[3], Losses[4], Losses[5]))
 
-        if Loss_total < 1 and a_ns < 1e-3:
+        if Loss_total < 1 and a_ns < a_ns_thred:
             this_N = 0
             a_ns = a_ns * 10
             alphas[0] = a_ns
             print("Alpha updated : %2.2e" % a_ns)
 
-        if Loss_total < 1 and a_ns >= 1e-3 and time_bound < time[-1]:
+        if Loss_total < 1 and a_ns >= a_ns_thred and time_bound < time[-1]:
             this_N = 0
             time_bound = time_bound + time_step
             # sampler.update_time(time_bound)

@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 
+import matplotlib.pyplot as plt
 def differential_y_x(y,X,component):
     return torch.autograd.grad(y.sum(), X, create_graph=True)[0][:,component:component+1]
 
@@ -61,3 +62,37 @@ def pair_domainVStime(domain, time, Nl,Nr,Nt):
         np.tile(time, (1, Nl * Nr)), (Nt * Nl * Nr, 1)
     )
     return domain, time
+
+def plot_frame(X_current_np, Color, ColorRange, i, vector=None, N_step=None, Velocity=None):
+    ColorMin = ColorRange[0]
+    ColorMax = ColorRange[1]
+    plt.tight_layout()
+    plt.gca().axis('equal')
+    plt.gca().pcolormesh(
+        X_current_np[i, :, :, 0],
+        X_current_np[i, :, :, 1],
+        Color[i, :, :],
+        vmin=ColorMin, vmax=ColorMax,
+        cmap='jet'
+    )
+    if vector is not None:
+        plt.quiver(
+            X_current_np[i, ::N_step, ::N_step, 0],
+            X_current_np[i, ::N_step, ::N_step, 1],
+            vector[i, ::N_step, ::N_step, 0] / Velocity,
+            vector[i, ::N_step, ::N_step, 1] / Velocity, scale=Velocity
+        )
+    # plt.streamplot(
+    #     X_current_np[i, ::N_step, ::N_step, 0],
+    #     X_current_np[i, ::N_step, ::N_step, 1],
+    #     U_current_np[i, ::N_step, ::N_step, 0],
+    #     U_current_np[i, ::N_step, ::N_step, 1],
+    #     # start_points=stream_points, density=[0.5, 1])
+    #     density=0.6, color='k', linewidth=Color[i, ::N_step, ::N_step]/Velocity
+    # )
+
+    # # Plot for vessel boundary
+    # plt.plot(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], c='r')
+    # plt.plot(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], c='r')
+    # plt.scatter(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], s=1, c='b')
+    # plt.scatter(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], s=1, c='b')

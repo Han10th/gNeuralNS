@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.utils import ToTensor,pair_domainVStime
+from utils.utils import ToTensor,pair_domainVStime,plot_frame
 Velocity = 10
 def normalize_byrow(vectors):
     # NEED TO VERIFY IF IT'S ROW NORMALIZATION
@@ -127,6 +127,11 @@ class SAMPLER2D_VESSEL:
 
         Xdomain = np.concatenate((domain_xy, domain_t), axis=1)
         return self.data_warper(Xdomain)
+    def sample_initial(self, N):
+        T0,T3 = self.time[0],self.time[3]
+        domain_t = np.random.uniform(low=T0, high=T0, size=(N, 1))
+        Uinit = np.zeros((N, 2))
+        return self.sample_domain(N,domain_t), self.data_warper(Uinit)
     def sample_wall(self,N, t=None):
         T0,T3 = self.time[0],self.time[3]
 
@@ -149,7 +154,8 @@ class SAMPLER2D_VESSEL:
         bdrIN_xy, coor_radius = Sample_AloneLine(
             self.pts_CL[0, :], self.normal_CL[0, :], self.radius_CL[0], N
         )
-        bdrIN_vu = Velocity * (1 - coor_radius ** 2) * self.vec_in
+        profile = (1-np.cos(20*np.pi*bdrIN_t))/2 * ((0.0<bdrIN_t) & (bdrIN_t<0.1))
+        bdrIN_vu = Velocity * (1 - coor_radius ** 2) * self.vec_in * profile
 
         XbdrIN = np.concatenate((bdrIN_xy, bdrIN_t), axis=1)
         UbdrIN = bdrIN_vu
@@ -213,52 +219,33 @@ class SAMPLER2D_VESSEL:
         if function is not None:
             U_current = torch.concat((
                 function(X_current, LOSS_TYPE = 'PDE')[0],
-                function(X_current, LOSS_TYPE = 'PDE')[0]
+                function(X_current, LOSS_TYPE = 'PDE')[1]
             ),dim=1)
             U_current[0,:] = 0*U_current[0,:]
+            P_current = function(X_current, LOSS_TYPE = 'PDE')[2]
 
         X_current_np = np.reshape(X_current.detach().cpu().numpy(),(self.Nt,self.Nr,self.Nl,3))
         U_current_np = np.reshape(U_current.detach().cpu().numpy(),(self.Nt,self.Nr,self.Nl,2))
-        P_current_np = np.reshape(P_current.detach().cpu().numpy(),(self.Nt,self.Nr,self.Nl))
+        Polor = np.reshape(P_current.detach().cpu().numpy(),(self.Nt,self.Nr,self.Nl))
         Color = np.sqrt(np.sum(U_current_np ** 2, axis=-1))
+        PolorMax, PolorMin = Polor.max(),Polor.min()
         ColorMax, ColorMin = Color.max(), Color.min()
         print("Visualization range : {},{}".format(ColorMax, ColorMin))
+        print("Visualization range : {},{}".format(PolorMax, PolorMin))
 
         if self.Nt < 20:
-            self.fig = plt.figure(figsize=(4, 10), dpi=600)
+            self.fig = plt.figure(figsize=(8, 10), dpi=600)
         for i in range(self.Nt):
             if self.Nt < 20:
-                plt.subplot(self.Nt, 1, i + 1)
+                plt.subplot(self.Nt, 2, 2*i + 1)
+                plot_frame(X_current_np, Color, [ColorMin,ColorMax], i,
+                           U_current_np, N_step, Velocity)
+                plt.subplot(self.Nt, 2, 2*i + 2)
+                plot_frame(X_current_np, Polor, [PolorMin,PolorMax], i)
             else:
                 self.fig = plt.figure(figsize=(8, 4), dpi=150)
-            plt.tight_layout()
-            plt.gca().axis('equal')
-            plt.gca().pcolormesh(
-                X_current_np[i, :, :, 0],
-                X_current_np[i, :, :, 1],
-                Color[i, :, :],
-                vmin=ColorMin, vmax=ColorMax
-            )
-            plt.quiver(
-                X_current_np[i, ::N_step, ::N_step, 0],
-                X_current_np[i, ::N_step, ::N_step, 1],
-                U_current_np[i, ::N_step, ::N_step, 0]/Velocity,
-                U_current_np[i, ::N_step, ::N_step, 1]/Velocity, scale=Velocity
-            )
-            # plt.streamplot(
-            #     X_current_np[i, ::N_step, ::N_step, 0],
-            #     X_current_np[i, ::N_step, ::N_step, 1],
-            #     U_current_np[i, ::N_step, ::N_step, 0],
-            #     U_current_np[i, ::N_step, ::N_step, 1],
-            #     # start_points=stream_points, density=[0.5, 1])
-            #     density=0.6, color='k', linewidth=Color[i, ::N_step, ::N_step]/Velocity
-            # )
-
-            # # Plot for vessel boundary
-            # plt.plot(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], c='r')
-            # plt.plot(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], c='r')
-            # plt.scatter(X_current_np[i, :, 0, 0], X_current_np[i, :, 0, 1], s=1, c='b')
-            # plt.scatter(X_current_np[i, :, -1, 0], X_current_np[i, :, -1, 1], s=1, c='b')
+                plot_frame(X_current_np, Color, [ColorMin,ColorMax], i,
+                           U_current_np, N_step, Velocity)
 
             if self.Nt >= 20:
                 plt.axis('off')
